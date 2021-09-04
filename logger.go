@@ -1,10 +1,9 @@
-package zerodriver
+package envlogdriver
 
 import (
-	"os"
-	"time"
-
+	"context"
 	"github.com/rs/zerolog"
+	"os"
 )
 
 type Logger struct {
@@ -15,51 +14,25 @@ type Event struct {
 	*zerolog.Event
 }
 
-// See: https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#LogSeverity
-var logLevelSeverity = map[zerolog.Level]string{
-	zerolog.DebugLevel: "DEBUG",
-	zerolog.InfoLevel:  "INFO",
-	zerolog.WarnLevel:  "WARNING",
-	zerolog.ErrorLevel: "ERROR",
-	zerolog.PanicLevel: "CRITICAL",
-	zerolog.FatalLevel: "CRITICAL",
-}
+const LogTraceIDKey = "X-Envlogdriver-Trace-Id"
 
-// NewProductionLogger returns a configured logger for production.
+// NewLogger returns a configured logger for production.
 // It outputs info level and above logs with sampling.
-func NewProductionLogger() *Logger {
-	logLevel := zerolog.InfoLevel
-	zerolog.SetGlobalLevel(logLevel)
+func NewLogger() *Logger {
 
-	zerolog.LevelFieldName = "severity"
-	zerolog.LevelFieldMarshalFunc = func(l zerolog.Level) string {
-		return logLevelSeverity[l]
+	loglevel := os.Getenv("LOG_LEVEL")
+	if loglevel == "ERROR" {
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	} else if loglevel == "WARN" {
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	} else if loglevel == "INFO" {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
-	zerolog.TimestampFieldName = "time"
-	zerolog.TimeFieldFormat = time.RFC3339Nano
-
-	// default sampler
-	sampler := &zerolog.BasicSampler{N: 1}
-
-	logger := zerolog.New(os.Stderr).Sample(sampler).With().Timestamp().Logger()
-	return &Logger{&logger}
-}
-
-// NewDevelopmentLogger returns a configured logger for development.
-// It outputs debug level and above logs, and sampling is disabled.
-func NewDevelopmentLogger() *Logger {
-	logLevel := zerolog.DebugLevel
-	zerolog.SetGlobalLevel(logLevel)
-
-	zerolog.LevelFieldName = "severity"
-	zerolog.LevelFieldMarshalFunc = func(l zerolog.Level) string {
-		return logLevelSeverity[l]
-	}
-	zerolog.TimestampFieldName = "time"
-	zerolog.TimeFieldFormat = time.RFC3339Nano
 
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-	return &Logger{&logger}
+	return &Logger{Logger: &logger}
 }
 
 // To use method chain we need followings
@@ -125,4 +98,12 @@ func (l *Logger) Printf(format string, v ...interface{}) {
 func (l Logger) Write(p []byte) (n int, err error) {
 	n, err = l.Logger.Write(p)
 	return n, err
+}
+
+// Ctx adds trace id to log event.
+func (e *Event) Ctx(ctx context.Context) *Event {
+	if v, ok := ctx.Value(LogTraceIDKey).(string); ok && len(v) > 0 {
+		return &Event{e.Str("trace", v)}
+	}
+	return e
 }

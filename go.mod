@@ -1,4 +1,4 @@
-module github.com/hirosassa/zerodriver
+module github.com/ma91n/envlogdriver
 
 go 1.16
 

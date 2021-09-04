@@ -1,4 +1,4 @@
-package zerodriver
+package envlogdriver
 
 import (
 	"net"
