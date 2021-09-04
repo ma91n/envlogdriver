@@ -11,20 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewProduction(t *testing.T) {
-	logger := NewProductionLogger()
-	assert.IsType(t, &Logger{}, logger)
-}
-
-func TestNewDevelopment(t *testing.T) {
-	logger := NewDevelopmentLogger()
+func TestNewLogger(t *testing.T) {
+	logger := NewLogger()
 	assert.IsType(t, &Logger{}, logger)
 }
 
 func TestLoggers(t *testing.T) {
 	t.Parallel()
 
-	log := NewProductionLogger()
+	log := NewLogger()
 
 	var tests = map[string]struct {
 		res     *Event
@@ -82,7 +77,7 @@ func TestFatal(t *testing.T) {
 	defer patch.Unpatch()
 
 	// replace writer
-	log := NewProductionLogger()
+	log := NewLogger()
 	out := &bytes.Buffer{}
 	logger := zerolog.New(out).With().Logger()
 	log.Logger = &logger
@@ -104,7 +99,7 @@ func TestPanic(t *testing.T) {
 	t.Parallel()
 
 	// replace writer
-	log := NewProductionLogger()
+	log := NewLogger()
 	out := &bytes.Buffer{}
 	logger := zerolog.New(out).With().Logger()
 	log.Logger = &logger
@@ -124,7 +119,7 @@ func TestPanic(t *testing.T) {
 
 func TestPrint(t *testing.T) {
 	// replace writer
-	log := NewDevelopmentLogger()
+	log := NewLogger()
 	out := &bytes.Buffer{}
 	logger := zerolog.New(out).With().Logger()
 	log.Logger = &logger
@@ -141,7 +136,7 @@ func TestPrint(t *testing.T) {
 
 func TestPrintf(t *testing.T) {
 	// replace writer
-	log := NewDevelopmentLogger()
+	log := NewLogger()
 	out := &bytes.Buffer{}
 	logger := zerolog.New(out).With().Logger()
 	log.Logger = &logger
@@ -159,7 +154,7 @@ func TestPrintf(t *testing.T) {
 func TestWrite(t *testing.T) {
 	t.Parallel()
 
-	log := NewProductionLogger()
+	log := NewLogger()
 	n, err := log.Write([]byte("abc"))
 	assert.Equal(t, 3, n)
 	assert.NoError(t, err)
